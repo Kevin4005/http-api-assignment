@@ -6,6 +6,125 @@
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
   <script type="text/babel">
+const parseResponse = (xhr,content) =>{
+    
+    //gets the response type 
+    const type = xhr.getResponseHeader('content-type');
+    
+    if(type === 'application/json'){
+        //parse response (obj will be empty in a 204 updated)
+        const obj = JSON.parse(xhr.response);
+        console.dir(obj);
+    
+        //if message in response, add to screen
+        if(obj.message){
+            const p = document.createElement('p');
+            p.textContent = `Message: ${obj.message}`;
+            content.appendChild(p);
+        }
+    }else if(type === 'text/xml'){
+        const message = xhr.responseXML.querySelector('message').textContent;
+        
+        const p = document.createElement('p');
+            p.textContent = `Message: ${message}`;
+            content.appendChild(p);
+        
+        console.dir(xhr.response);
+    }
+}
+
+//function to handle our response
+    const handleResponse = (xhr) => {
+      const content = document.querySelector('#content');
+      
+      //check the status code
+      switch(xhr.status) {
+        case 200: //success
+          content.innerHTML = `<b>Success</b>`;
+          break;
+        case 401: 
+          content.innerHTML = '<b>Unauthorized</b>';
+          break;
+        case 403: 
+          content.innerHTML = '<b>Forbidden</b>';
+              break;
+        case 400: //bad request
+          content.innerHTML = `<b>Bad Request</b>`;
+          break;
+        case 501: 
+          content.innerHTML = '<b>Not Implemented</b>';
+          break;
+        case 500: 
+          content.innerHTML = '<b>Internal Error</b>';
+          break;
+        case 404: 
+          content.innerHTML = `<b>Page Not Found</b>`;
+          break;
+        default: //any other status code
+          content.innerHTML = `Error code not implemented by client.`;
+          break;
+              return;
+      }
+
+      //parse response 
+      parseResponse(xhr, content);
+    };
+
+    //function to send our post request
+    const sendGet = (e, form) => {
+      //prevent the browser's default action (to send the form on its own)
+      e.preventDefault();
+      
+      //grab the forms action (url to go to)
+      //and method (HTTP method - POST in this case)
+      const action = document.querySelector("#page").value;
+      const method = form.getAttribute('method');
+      
+      //grab the form's name and age fields so we can check user input
+      const message = document.querySelector('#page').value;
+      const dataType = document.querySelector('#type').value;
+      
+      //create a new Ajax request (remember this is asynchronous)
+      const xhr = new XMLHttpRequest();
+      //set the method and url (action field from form)
+      xhr.open(method, action);
+      
+      //set our requested response type in hopes of a JSON response
+      xhr.setRequestHeader ('Accept', dataType);
+      
+      //set our function to handle the response
+      xhr.onload = () => handleResponse(xhr);
+      
+      //build our x-www-form-urlencoded format. Without ajax the 
+      //browser would do this automatically but it forcefully changes pages
+      //which we don't want.
+      //The format is the same as query strings, so key=value&key2=value2
+      //The 'name' fields from the inputs are the variable names sent to
+      //the server. 
+      //So ours might look like  name=test&age=22
+      //Again the 'name' fields in the form are the variable names in the string
+      //and the variable names the server will look for.
+      //const formData = `id=${dataType}&message=${message}`;
+      
+      //send our request with the data
+      xhr.send();
+    
+      //return false to prevent the browser from trying to change page
+      return false;
+    };
+
+    const init = () => {
+      //grab form
+      const send = document.querySelector('#send');
+      
+      //create handler
+      const changeStatus = (e) => sendGet(e, send);
+      
+      //attach submit event (for clicking submit or hitting enter)
+      send.addEventListener('click', changeStatus);
+    };
+
+    window.onload = init;
 
   </script>
 </head>
@@ -25,7 +144,7 @@
       <option value="application/json">JSON</option>
       <option value="text/xml">XML</option>
     </select>
-    <button id="send">Send</button>
+    <button id="send" method="GET">Send</button>
   </section>
   <section id="content">
   </section>
